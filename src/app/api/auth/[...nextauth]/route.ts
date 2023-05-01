@@ -1,9 +1,8 @@
 import NextAuth from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { pg } from "@/config/database";
-import { QueryResult } from "pg";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 export const authOptions = {
   providers: [
@@ -14,16 +13,19 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials, req) {
-        const { email, password } = credentials as { email: string; password: string };
+        const { email: originalEmail, password: originalPassword } = credentials as { email: string; password: string };
         const prisma = new PrismaClient();
         // SELECT * FROM userdata WHERE email = '${email}'
-        const res = await prisma.userdata.findUnique({ where: { email: email } });
-        const query = ``;
-        console.log(res);
-        const user = { id: "1", name: "J Smith", email: "jsmith@example.com" };
-        if (user) {
+        try {
+          const data = await prisma.userdata.findUnique({ where: { email: originalEmail } });
+          if (!data) return null;
+          const { id, nickname, password, salt } = data;
+          const hashedPassword = await bcrypt.hash(originalPassword, salt);
+          if (hashedPassword != password) return null;
+          const user = { id: String(id), name: nickname, email: originalEmail };
           return user;
-        } else {
+        } catch (error) {
+          console.log(error);
           return null;
         }
       },
@@ -33,6 +35,9 @@ export const authOptions = {
       clientSecret: process.env.GITHUB_SECRET as string,
     }),
   ],
+  pages: {
+    signIn: "/auth",
+  },
   secret: process.env.SECRET as string,
 };
 const handler = NextAuth(authOptions);

@@ -12,5 +12,6 @@ model userdata {
   nickname String
   email    String  @unique
   password String
+  salt     String
   profile  String?
 }
