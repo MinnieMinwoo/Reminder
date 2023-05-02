@@ -15,3 +15,10 @@ model userdata {
   salt     String
   profile  String?
 }
+
+model reminddata {
+  id       Int     @id @default(autoincrement())
+  data     String
+  target   String
+  time     DateTime
+}

@@ -1,4 +1,4 @@
-import { NextAuthProvider } from "./providers";
+import { NextProvider } from "./providers";
 import "./globals.css";
 import LoginButton from "@/components/LoginButton";
 
@@ -11,20 +11,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <NextAuthProvider>
-          <header>
-            <div className="flex justify-between text-3xl mx-2">
-              <h1 className=" my-2">Reminder</h1>
+        <NextProvider>
+          <header className="bg-gray-50">
+            <div className="flex justify-between mx-2 text-3xl">
+              <h1 className="my-2 font-bold">Reminder</h1>
               <LoginButton />
             </div>
-            <nav className="space-x-2 text-2xl mx-2">
-              <span>test1</span>
-              <span>test2</span>
-              <span>test3</span>
+            <nav className="px-2 py-2 space-x-2 text-2xl text-gray-700">
+              <span>Search</span>
+              <span>Setting</span>
             </nav>
+            <hr />
           </header>
           {children}
-        </NextAuthProvider>
+        </NextProvider>
       </body>
     </html>
   );

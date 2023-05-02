@@ -11,7 +11,6 @@ export default function Page() {
     event.preventDefault();
     const { target } = event;
     if (!(target instanceof HTMLFormElement)) return;
-    console.log(isSignUp);
     if (isSignUp) {
       const {
         nickname: { value: nickname },
@@ -42,8 +41,8 @@ export default function Page() {
   const inputClass =
     "w-full my-3 h-8 rounded ring-2 ring-violet-300 hover:ring-violet-500 focus:ring-violet-600 focus:outline-none text-gray-600";
   return (
-    <div className="w-full flex justify-center mt-8">
-      <form className="flex flex-col w-6/12 items-center" onSubmit={onSubmit}>
+    <div className="flex justify-center w-full mt-8">
+      <form className="flex flex-col items-center w-6/12" onSubmit={onSubmit}>
         {isSignUp ? (
           <>
             <label className={labelClass}>Nickname</label>
@@ -56,13 +55,13 @@ export default function Page() {
         <input className={inputClass} type="password" name="password" placeholder="password" required />
         <div>
           <button
-            className="bg-violet-500 hover:bg-violet-700 text-white font-bold mx-2 my-2 px-2 py-1 rounded"
+            className="px-2 py-1 mx-2 my-2 font-bold text-white rounded bg-violet-500 hover:bg-violet-700"
             type="submit"
           >
             {isSignUp ? "Sign up" : "Sign in"}
           </button>
           <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold mx-2 my-2 px-2 py-1 rounded"
+            className="px-2 py-1 mx-2 my-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
             type="button"
             onClick={onClick}
           >
