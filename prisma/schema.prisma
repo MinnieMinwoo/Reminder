@@ -20,5 +20,6 @@ model reminddata {
   id       Int     @id @default(autoincrement())
   data     String
   target   String
+  isComplete Boolean
   time     DateTime
 }
