@@ -1,6 +1,6 @@
 "use client";
 import { useSession } from "next-auth/react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { reminddata } from "@prisma/client";
 
@@ -20,7 +20,7 @@ function RemindModal({
   const [date, setDate] = useState<[number, number, number, number, number]>([2000, 1, 1, 0, 0]);
   useEffect(() => {
     const date = new Date();
-    setDate([date.getFullYear(), date.getMonth() + 1, date.getDay(), date.getHours() + 1, date.getMinutes()]);
+    setDate([date.getFullYear(), date.getMonth() + 1, date.getDate(), date.getHours() + 1, date.getMinutes()]);
   }, []);
 
   const onDateChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -111,6 +111,19 @@ export default function RemindList() {
     queryKey: ["remindData"],
     queryFn: () => loadingData(session?.user?.email ?? ""),
     enabled: status === "authenticated",
+    onError: (error) => console.log(error),
+  });
+  const queryClient = useQueryClient();
+  const editMutation = useMutation({
+    mutationFn: async (data: reminddata) => {
+      await fetch("api/data", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["remindData"] }),
+    onError: (error) => console.log(error),
   });
 
   const onWrite = async (title: string, date: [number, number, number, number, number]) => {
@@ -125,31 +138,56 @@ export default function RemindList() {
       content: title,
       date: new Date(...copyDate),
     };
-    const result = await fetch("api/data", {
+    await fetch("api/data", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    console.log(result);
+  };
+
+  const onComplete = async (id: number) => {
+    let target = { ...data?.find((element) => element.id === id) };
+    if (!target) return;
+    target.isComplete = !target.isComplete;
+    editMutation.mutate(target as reminddata);
   };
 
   return (
     <div className="flex flex-col w-8/12 min-h-screen pt-12">
-      <button
-        className="self-end block px-2 py-1 mx-2 mt-2 mb-4 font-bold text-white rounded w-28 bg-violet-500 hover:bg-violet-700"
-        onClick={() => setIsWrite((prev) => !prev)}
-      >
-        add remind
-      </button>
+      {status === "authenticated" && (
+        <button
+          className="self-end block px-2 py-1 mx-2 mt-2 mb-4 font-bold text-white rounded w-28 bg-violet-500 hover:bg-violet-700"
+          onClick={() => setIsWrite((prev) => !prev)}
+        >
+          add remind
+        </button>
+      )}
       {isWrite && <RemindModal submitCallBack={onWrite} />}
-      {isLoading ? (
+      {status === "unauthenticated" ? (
+        <p className="text-xl font-semibold">Please sign in first</p>
+      ) : isLoading ? (
         <h1 className="text-3xl font-bold underline">Loading...</h1>
       ) : data && data.length ? (
-        data.map((e, i) => (
-          <p key={i} className="text-xl font-semibold">
-            {e.data}
-          </p>
-        ))
+        <ul>
+          {data
+            .sort((a, b) => {
+              const timeA = new Date(a.time);
+              const timeB = new Date(b.time);
+              return timeA.getTime() - timeB.getTime();
+            })
+            .map((element) => {
+              const time = new Date(element.time);
+              return (
+                <li key={element.id}>
+                  <span className="text-xl font-semibold">{element.data}</span>
+                  <span>{`${time.getFullYear()}. ${
+                    time.getMonth() + 1
+                  }. ${time.getDate()}, ${time.getHours()}:${time.getMinutes()}`}</span>
+                  <input type="checkbox" defaultChecked={element.isComplete} onChange={() => onComplete(element.id)} />
+                </li>
+              );
+            })}
+        </ul>
       ) : (
         <p className="text-xl font-semibold">No Data</p>
       )}
