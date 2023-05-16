@@ -100,6 +100,7 @@ function RemindModal({
 export default function RemindList() {
   const { data: session, status } = useSession();
   const [isWrite, setIsWrite] = useState(false);
+  const queryClient = useQueryClient();
 
   const loadingData = async (id: string) => {
     if (!id) return [];
@@ -113,7 +114,26 @@ export default function RemindList() {
     enabled: status === "authenticated",
     onError: (error) => console.log(error),
   });
-  const queryClient = useQueryClient();
+
+  const onWrite = async (title: string, date: [number, number, number, number, number]) => {
+    if (!session?.user) return;
+    const {
+      user: { email },
+    } = session;
+    let copyDate: [number, number, number, number, number] = [...date];
+    copyDate[1]--;
+    const body = {
+      target: email,
+      data: title,
+      time: new Date(...copyDate),
+    };
+    await fetch("api/data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  };
+
   const editMutation = useMutation({
     mutationFn: async (data: reminddata) => {
       await fetch("api/data", {
@@ -126,30 +146,29 @@ export default function RemindList() {
     onError: (error) => console.log(error),
   });
 
-  const onWrite = async (title: string, date: [number, number, number, number, number]) => {
-    if (!session?.user) return;
-    const {
-      user: { email },
-    } = session;
-    let copyDate: [number, number, number, number, number] = [...date];
-    copyDate[1]--;
-    const body = {
-      user: email,
-      content: title,
-      date: new Date(...copyDate),
-    };
-    await fetch("api/data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  };
-
   const onComplete = async (id: number) => {
     let target = { ...data?.find((element) => element.id === id) };
     if (!target) return;
     target.isComplete = !target.isComplete;
     editMutation.mutate(target as reminddata);
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const data = { id: id };
+      await fetch(`api/data/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["remindData"] }),
+    onError: (error) => console.log(error),
+  });
+
+  const onDelete = async (id: number) => {
+    let target = { ...data?.find((element) => element.id === id) };
+    if (!target.id) return;
+    deleteMutation.mutate(target.id);
   };
 
   return (
@@ -178,12 +197,32 @@ export default function RemindList() {
             .map((element) => {
               const time = new Date(element.time);
               return (
-                <li key={element.id}>
+                <li
+                  key={element.id}
+                  className={`flex justify-between py-2 px-2 my-2 rounded ${
+                    element.isComplete ? "bg-green-400" : new Date().getTime() > time.getTime() ? "bg-red-400" : ""
+                  }`}
+                >
                   <span className="text-xl font-semibold">{element.data}</span>
-                  <span>{`${time.getFullYear()}. ${
-                    time.getMonth() + 1
-                  }. ${time.getDate()}, ${time.getHours()}:${time.getMinutes()}`}</span>
-                  <input type="checkbox" defaultChecked={element.isComplete} onChange={() => onComplete(element.id)} />
+                  <div className={`self-end `}>
+                    <span className="mx-1">
+                      {`${time.getFullYear()}. ${
+                        time.getMonth() + 1
+                      }. ${time.getDate()}, ${time.getHours()}:${time.getMinutes()}`}
+                    </span>
+                    <input
+                      type="checkbox"
+                      className="mx-1"
+                      defaultChecked={element.isComplete}
+                      onChange={() => onComplete(element.id)}
+                    />
+                    <button
+                      className="w-20 px-2 py-1 mx-1 font-bold text-white bg-yellow-500 rounded hover:bg-yellow-700"
+                      onClick={() => onDelete(element.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </li>
               );
             })}
