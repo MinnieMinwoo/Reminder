@@ -23,6 +23,7 @@ export async function GET(request: Request, context: { params: ParamsGet }) {
 }
 
 export async function DELETE(request: Request, context: { params: ParamsGet }) {
+  console.log(request.headers);
   try {
     const {
       params: { id },

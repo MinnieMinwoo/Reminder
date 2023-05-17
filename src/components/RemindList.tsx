@@ -115,6 +115,21 @@ export default function RemindList() {
     onError: (error) => console.log(error),
   });
 
+  const writeMutation = useMutation({
+    mutationFn: async (data: { target: string | null | undefined; data: string; time: Date }) => {
+      await fetch("api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["remindData"] });
+      setIsWrite(false);
+    },
+    onError: (error) => console.log(error),
+  });
+
   const onWrite = async (title: string, date: [number, number, number, number, number]) => {
     if (!session?.user) return;
     const {
@@ -127,11 +142,7 @@ export default function RemindList() {
       data: title,
       time: new Date(...copyDate),
     };
-    await fetch("api/data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    writeMutation.mutate(body);
   };
 
   const editMutation = useMutation({
